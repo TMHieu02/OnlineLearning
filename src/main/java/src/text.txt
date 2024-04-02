@@ -1,0 +1,44 @@
+package src.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import src.model.${name};
+import src.repository.I${name}Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class ${name}Service {
+    private  I${name}Repository ${name.toLowerCase()}Repository;
+    @Autowired
+    public ${name}Service(I${name}Repository ${name.toLowerCase()}Repository) {
+        this.${name.toLowerCase()}Repository = ${name.toLowerCase()}Repository;
+    }
+
+    public List<${name}> getAll() {
+        return (List<${name}>) ${name.toLowerCase()}Repository.findAll();
+    }
+
+    public Optional<${name}> getOne(UUID id) {
+        return ${name.toLowerCase()}Repository.findById(id);
+    }
+
+    public ${name} create(${name} ${name.toLowerCase()}) {
+        return ${name.toLowerCase()}Repository.save(${name.toLowerCase()});
+    }
+
+    public ${name} update(UUID id, ${name} ${name.toLowerCase()}) {
+        ${name} existing${name} = ${name.toLowerCase()}Repository.findById(id).orElse(null);
+        if (existing${name} != null) {
+
+            ${name.toLowerCase()}Repository.save(existing${name});
+        }
+        return existing${name};
+    }
+
+    public void remove(UUID id) {
+        ${name.toLowerCase()}Repository.deleteById(id);
+    }
+}
