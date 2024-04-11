@@ -1,5 +1,6 @@
 package src.controller;
 
+import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -36,12 +37,13 @@ public class VNPayController {
 
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
+    private ServletRequest request;
 
     public String createPayment(String orderInfor, String urlReturn, long amount, String infor) {
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
         String vnp_TxnRef = VNPayConfig.getRandomNumber(8);
-        String vnp_IpAddr = "127.0.0.1";
+        String vnp_IpAddr = request.getRemoteAddr();
         String vnp_TmnCode = VNPayConfig.vnp_TmnCode;
         String orderType = "order-type";
 
