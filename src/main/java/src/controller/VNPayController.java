@@ -1,35 +1,20 @@
 package src.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
-
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
-
 import src.config.VNPayConfig;
 import src.Dto.TransactionStatusDTO;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import src.config.annotation.ApiPrefixController;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://boss-breath-production.up.railway.app")
 @RestController
 @ApiPrefixController(value = "/vnpay")
 public class VNPayController {
@@ -37,7 +22,7 @@ public class VNPayController {
     @Value("${frontend.base.url}")
     private String frontendBaseUrl;
 
-    public String createPayment(String orderInfor, String urlReturn, long amount, String infor) {
+    public String createPayment(String orderInfor, String baseUrl, long amount, String infor) {
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
         String vnp_TxnRef = VNPayConfig.getRandomNumber(8);
@@ -51,7 +36,6 @@ public class VNPayController {
         vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
         vnp_Params.put("vnp_Amount", String.valueOf(amount));
         vnp_Params.put("vnp_CurrCode", "VND");
-
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
         vnp_Params.put("vnp_OrderInfo", infor);
         vnp_Params.put("vnp_OrderType", orderType);
@@ -60,7 +44,7 @@ public class VNPayController {
         vnp_Params.put("vnp_Locale", locate);
 
         // Sử dụng URL của front end từ cấu hình
-        urlReturn = frontendBaseUrl + VNPayConfig.vnp_ReturnUrl;
+        String urlReturn = frontendBaseUrl + VNPayConfig.vnp_ReturnUrl;
         vnp_Params.put("vnp_ReturnUrl", urlReturn);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
@@ -73,57 +57,43 @@ public class VNPayController {
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
-        List fieldNames = new ArrayList(vnp_Params.keySet());
-        Collections.sort(fieldNames);
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
-        Iterator itr = fieldNames.iterator();
-        while (itr.hasNext()) {
-            String fieldName = (String) itr.next();
-            String fieldValue = (String) vnp_Params.get(fieldName);
-            if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                //Build hash data
-                hashData.append(fieldName);
-                hashData.append('=');
-                try {
-                    hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                    //Build query
-                    query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString()));
-                    query.append('=');
-                    query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-                if (itr.hasNext()) {
-                    query.append('&');
-                    hashData.append('&');
-                }
-            }
+        String hashData = VNPayConfig.hashAllFields(vnp_Params);
+
+        try {
+            baseUrl = URLEncoder.encode(baseUrl, StandardCharsets.UTF_8.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        String queryUrl = query.toString();
-        String vnp_SecureHash = VNPayConfig.hmacSHA512(VNPayConfig.secretKey, hashData.toString());
-        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
+
+        String queryUrl = "vnp_PayUrl=" + VNPayConfig.vnp_PayUrl + "&" + "vnp_Version=" + vnp_Version + "&" +
+                "vnp_Command=" + vnp_Command + "&" + "vnp_TmnCode=" + vnp_TmnCode + "&" + "vnp_Amount=" + amount + "&" +
+                "vnp_CurrCode=VND&" + "vnp_TxnRef=" + vnp_TxnRef + "&" + "vnp_OrderInfo=" + infor + "&" +
+                "vnp_OrderType=" + orderType + "&" + "vnp_Locale=" + locate + "&" + "vnp_ReturnUrl=" + urlReturn + "&" +
+                "vnp_IpAddr=" + vnp_IpAddr + "&" + "vnp_CreateDate=" + vnp_CreateDate + "&" +
+                "vnp_ExpireDate=" + vnp_ExpireDate + "&" + "vnp_SecureHash=" + hashData + "&vnp_Url=" + baseUrl;
+
         return VNPayConfig.vnp_PayUrl + "?" + queryUrl;
     }
+
     @PostMapping("/create_payment")
-    public String test(@RequestBody Map<String, String> requestBody, HttpServletRequest request) {
+    public String createPayment(@RequestBody Map<String, String> requestBody, HttpServletRequest request) {
         String amountStr = requestBody.get("amount"); // Lấy giá trị 'amount' từ request body
-        String infors = requestBody.get("infor");
-        int amount = Integer.parseInt(amountStr);
+        String infor = requestBody.get("infor");
+        long amount = Long.parseLong(amountStr);
 
         String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
 
         // Gọi hàm createPayment với thông tin cần thiết
-        String vnpay_url = createPayment("pay", baseUrl, amount, infors);
+        String vnpay_url = createPayment("pay", baseUrl, amount, infor);
 
         return vnpay_url;
     }
 
     @GetMapping("/test")
-    public String send()
-    {
+    public String send() {
         return "vnpay";
     }
+
     @GetMapping("payment_infor")
     public ResponseEntity<?> transaction(
             @RequestParam(value = "vnp_Amount") String amount,
@@ -132,7 +102,7 @@ public class VNPayController {
             @RequestParam(value = "vnp_ResponseCode") String responseCode
     ) {
         TransactionStatusDTO transactionStatusDTO = new TransactionStatusDTO();
-        if(responseCode.equals("00")) {
+        if (responseCode.equals("00")) {
             transactionStatusDTO.setStatus("ok");
             transactionStatusDTO.setMessage("Successfully");
             transactionStatusDTO.setData("");
@@ -144,5 +114,4 @@ public class VNPayController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(transactionStatusDTO);
     }
-
 }
