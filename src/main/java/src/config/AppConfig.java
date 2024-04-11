@@ -89,7 +89,7 @@ public class AppConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins("*")
-                .allowedOrigins("https://woozy-wrench-production.up.railway.app")
+                .allowedOrigins("https://boss-breath-production.up.railway.app/")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowedHeaders("*");
     }
