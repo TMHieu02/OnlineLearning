@@ -88,11 +88,11 @@ public class AppConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("*")
                 .allowedOrigins("https://boss-breath-production.up.railway.app/")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                 .allowedHeaders("*");
     }
+
 
     @Bean
     public RateLimiterRegistry rateLimiterRegistry() {
